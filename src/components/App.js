@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import logo from '../logo.png';
 import './App.css';
 
 
@@ -15,7 +14,9 @@ class App extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      buffer: null
+      buffer: null,
+      memeHash: 'QmQs1XTToJXKfJVopECEP3VGmV71Nz63L6wC5knw5Jwv3m',
+      memPath: null
     };
   }
 
@@ -30,6 +31,8 @@ class App extends Component {
     }
   };
 
+  // Example "QmQs1XTToJXKfJVopECEP3VGmV71Nz63L6wC5knw5Jwv3m"
+  // url https://ipfs.infura.io/ipfs/QmQs1XTToJXKfJVopECEP3VGmV71Nz63L6wC5knw5Jwv3m
   onSubmit = event => {
     event.preventDefault()
     console.log("Submitting file to ipfs...")
@@ -39,6 +42,9 @@ class App extends Component {
         console.error(error)
         return
       }
+      const memeHash = result[0].hash;
+      const memePath = result[0].path;
+      this.setState({ memeHash: memeHash, memPath: memePath });
     });
   };
 
@@ -64,7 +70,7 @@ class App extends Component {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <img src={logo} className="App-logo" alt="logo" />
+                  <img src={`https://ipfs.infura.io/ipfs/${this.state.memeHash}`} />
                 </a>
                 <p>&nbsp;</p>
                 <h2>Change Meme</h2>

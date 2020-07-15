@@ -2,6 +2,14 @@ import React, { Component } from 'react';
 import logo from '../logo.png';
 import './App.css';
 
+
+const ipfsClient = require('ipfs-http-client');
+const ipfs = ipfsClient({
+  host: 'ipfs.infura.io',
+  port: '5001',
+  protocol: 'https'
+});
+
 class App extends Component {
 
   constructor(props) {
@@ -12,18 +20,26 @@ class App extends Component {
   }
 
   captureFile = event => {
-      event.preventDefault();
-    const file = event.target.files[0];
-    const reader = new window.FileReader(); // converts file to buffer
-    reader.readAsArrayBuffer(file);
+    event.preventDefault()
+    const file = event.target.files[0]
+    const reader = new window.FileReader()
+    reader.readAsArrayBuffer(file)
     reader.onloadend = () => {
-      this.setState({ buffer: Buffer(reader.result) });
-    };
+      this.setState({ buffer: Buffer(reader.result) })
+      console.log('buffer', this.state.buffer)
+    }
   };
 
   onSubmit = event => {
-    event.preventDefault();
-    console.log('here');
+    event.preventDefault()
+    console.log("Submitting file to ipfs...")
+    ipfs.add(this.state.buffer, (error, result) => {
+      console.log('Ipfs result', result)
+      if (error) {
+        console.error(error)
+        return
+      }
+    });
   };
 
   render() {
@@ -52,9 +68,9 @@ class App extends Component {
                 </a>
                 <p>&nbsp;</p>
                 <h2>Change Meme</h2>
-                <form>
+                <form onSubmit={this.onSubmit}>
                   <input type="file" onChange={this.captureFile} />
-                  <input type="submit" onSubmit={this.onSubmit} />
+                  <input type="submit" />
                 </form>
               </div>
             </main>

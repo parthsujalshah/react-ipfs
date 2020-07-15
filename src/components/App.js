@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import './App.css';
 import Web3 from 'web3';
+import Meme from '../abis/Meme.json';
 
 const ipfsClient = require('ipfs-http-client');
 const ipfs = ipfsClient({
@@ -11,14 +12,49 @@ const ipfs = ipfsClient({
 
 class App extends Component {
 
+  async componentWillMount() {
+    await this.loadWeb3();
+    await this.loadBlockchainData();
+  };
+
+  async loadBlockchainData() {
+    const web3 = window.web3;
+    const accounts = await web3.eth.getAccounts();
+    this.setState({ account: accounts[0] });
+    const networkId = await web3.eth.net.getId()
+    const networkData = Meme.networks[networkId];
+    if (networkData) {
+      const abi = Meme.abi;
+      const address = networkData.address;
+      const contract = web3.eth.Contract(abi, address);
+      this.setState({ contract });
+      const memeHash = await contract.methods.get().call();
+      this.setState({ memeHash });
+    } else {
+      window.alert('Smart contract not deployed!');
+    }
+  };
+
   constructor(props) {
     super(props);
     this.state = {
       buffer: null,
       memeHash: 'QmQs1XTToJXKfJVopECEP3VGmV71Nz63L6wC5knw5Jwv3m',
-      memPath: null
+      memPath: null,
+      contract: null
     };
   }
+
+  async loadWeb3() {
+    if (window.ethereum) {
+      window.web3 = new Web3(window.ethereum);
+      await window.ethereum.enable();
+    } if (window.web3) {
+      window.web3 = new Web3(window.web3.currentProvider);
+    } else {
+      window.alert('Please use metamask');
+    }
+  };
 
   captureFile = event => {
     event.preventDefault()
@@ -33,18 +69,21 @@ class App extends Component {
 
   // Example "QmQs1XTToJXKfJVopECEP3VGmV71Nz63L6wC5knw5Jwv3m"
   // url https://ipfs.infura.io/ipfs/QmQs1XTToJXKfJVopECEP3VGmV71Nz63L6wC5knw5Jwv3m
-  onSubmit = event => {
+  onSubmit = async event => {
     event.preventDefault()
     console.log("Submitting file to ipfs...")
-    ipfs.add(this.state.buffer, (error, result) => {
+    ipfs.add(this.state.buffer, async (error, result) => {
       console.log('Ipfs result', result)
+      const memeHash = result[0].hash;
+      const memePath = result[0].path;
       if (error) {
         console.error(error)
         return
       }
-      const memeHash = result[0].hash;
-      const memePath = result[0].path;
-      this.setState({ memeHash: memeHash, memPath: memePath });
+      this.state.contract.methods.set(memeHash).send({ from: this.state.account })
+        .then(r => {
+          this.setState({ memeHash: memeHash, memPath: memePath });
+        })
     });
   };
 
@@ -60,6 +99,11 @@ class App extends Component {
           >
             Meme of the Day
           </a>
+          <ul className="navbar-nav px-3">
+            <li className="nav-item text-nowrap d-none -sm-none d-sm-block">
+              <small className="text-white">{this.state.account}</small>
+            </li>
+          </ul>
         </nav>
         <div className="container-fluid mt-5">
           <div className="row">
